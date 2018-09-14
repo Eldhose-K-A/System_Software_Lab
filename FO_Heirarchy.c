@@ -28,7 +28,7 @@ void createdir()
 	if(pwd->subdirlist==NULL)
 	{
 		pwd->subdirlist=newdir;
-		printf("first Directory Added!....");
+		printf("Directory Added!....");
 		return;
 	}
 	while(tmpdir->next!=NULL)
@@ -48,7 +48,7 @@ void createdir()
 	  return;
 	}
 	tmpdir->next=newdir;
-	printf("\nDirectory Added!.....");
+	printf("Directory Added!.....");
 }
 void touchfile()
 {
@@ -67,7 +67,6 @@ void touchfile()
 	}
 	while(tfile->next!=NULL)
 	{
-		printf("*-");
 		if(strcmp(tfile->name,nametmp)==0)
 		{	
 		  printf("File already exists!......");
@@ -83,43 +82,47 @@ void touchfile()
 	  return;
 	}
 	tfile->next=newfile;
-	printf("\nFile Added!.....");
+	printf("File Added!.....");
 }
 
-
-void listdir(struct dirnode *cr)
+void beautify(int v)
 {
-	int k;
+	int g1;
+	printf("\n\e[34m     ");
+	for(g1=1;g1<(v-1);++g1)
+		printf("|    ");
+	for(;g1<v;++g1)
+		printf("\u2514--->");
+	printf("\e[0m");
+}
+void listdir(struct dirnode *cr,int spaceval)
+{
 	struct dirnode *var;
+	struct filenode *var2;
 	if(cr!=NULL)
 	{
-		tfile=cr->filelist;
-		printf("Directory name :- %s | Files:- ",cr->name);
-		if(tfile==NULL) printf(" (empty) ");
-		while(tfile!=NULL)
+		var2=cr->filelist;
+		if(spaceval>=2)
+			beautify(spaceval);
+		else
+			printf("\n     ");
+		printf("Directory : %s",cr->name);
+		while(var2!=NULL)
 		{
-			printf("%s, ",tfile->name);
-			tfile=tfile->next;
+			beautify(spaceval+1);
+			printf("File : %s",var2->name);
+			var2=var2->next;
 		}
-		var=cr->subdirlist;
-		printf(" | SubDirectories :- ");
-		if(var==NULL) printf(" (empty) ");
-		while(var!=NULL)
-		{
-			printf("%s, ",var->name);
-			var=var->next;
-		}
-		printf("\n");
 		var=cr->subdirlist;
 		while(var!=NULL)
 		{
-			listdir(var);
+			listdir(var,spaceval+1);
 			var=var->next;
 		}
 	}
 }
 
-struct filenode findfile(struct dirnode *cr,char *sname)
+struct filenode *findfile(struct dirnode *cr,char *sname)
 {
 	int k;
 	struct filenode *rtval;
@@ -138,14 +141,8 @@ struct filenode findfile(struct dirnode *cr,char *sname)
 		var=cr->subdirlist;
 		while(var!=NULL)
 		{
-			printf("%s, ",var->name);
-			var=var->next;
-		}
-		printf("\n");
-		var=cr->subdirlist;
-		while(var!=NULL)
-		{
-			listdir(var);
+			rtval=findfile(var,sname);
+			if(rtval!=NULL) return(rtval);
 			var=var->next;
 		}
 	}
@@ -161,7 +158,7 @@ void removedir(struct dirnode *cr)
 		tfile=cr->filelist;
 		while(tfile!=NULL)
 		{
-			printf("\n%s File of %s deleted, ",tfile->name,cr->name);
+			printf("%s File of %s deleted\n",tfile->name,cr->name);
 			t2file=tfile;
 			free(t2file);
 			tfile=tfile->next;
@@ -171,9 +168,9 @@ void removedir(struct dirnode *cr)
 		{
 			removedir(var);
 			tmpdir=var;
-			printf("\n%s Directorty od %s deleted, ",tmpdir->name,cr->name);
-			free(tmpdir);
 			var=var->next;
+			printf("%s Directorty of %s deleted\n",tmpdir->name,cr->name);
+			free(tmpdir);
 		}
 	}
 }
@@ -211,10 +208,24 @@ void removefile()
 	printf("File Not Found!.....");
 }
 
+void printpath(struct dirnode *cr)
+{
+	if(cr!=NULL)
+	{
+		if(cr!=rootdir)
+		{
+			printpath(cr->parent);
+			printf("/%s",cr->name);
+		}
+		else
+			printf("%s",cr->name);
+	}
+}
+
 int main(void)
 {
 	int ch;
-	char cmd[10];//ls,find touch,mkdir,rmdir,rm,cd
+	char cmd[10],findname[20];
 	tmpdir=newdir=rootdir=pwd=NULL;
 	newfile=tfile=NULL;
 
@@ -223,32 +234,107 @@ int main(void)
 	rootdir->filelist=NULL;
 	pwd=rootdir;
 
-	printf("\Enter the name of root Directory : ");
+	printf("\nEnter the name of root Directory : ");
 	scanf(" %s",rootdir->name);
-	
 	while(1)
 	{
-		printf("\nPwd :- %s",pwd->name);
-		printf("\n(Commands allowded : ls, find, touch, mkdir, rmdir, rm, cd, exit)");
-		printf("\n$ ");
+		printf("\e[31m\n>>>\e[0m\e[32m");
+		printpath(pwd);
+		printf("\e[0m\e[31m $\e[0m ");
 		scanf(" %s",cmd);
 		if(strcmp(cmd,"exit")==0)
 			return 0;
 		else if(strcmp(cmd,"mkdir")==0)
 			createdir();
 		else if(strcmp(cmd,"ls")==0)
-			listdir(pwd);
+			listdir(pwd,1);
 		else if(strcmp(cmd,"touch")==0)
 			touchfile();
 		else if(strcmp(cmd,"rm")==0)
 			removefile();
+		else if(strcmp(cmd,"help")==0)
+		{
+			printf("\n\tCOMMAND LIST");
+			printf("\nls\t- To list the directory contents");
+			printf("\nfind\t- To search a file");
+			printf("\ntouch\t- To create a file");
+			printf("\nmkdir\t- To make a directory");
+			printf("\nrmdir\t- To remove a directory");
+			printf("\nrm\t- To remove a file");
+			printf("\ncd\t- To change directory");
+			printf("\nexit\t- To exit the simulation");
+		}
+		else if(strcmp(cmd,"find")==0)
+		{
+			scanf(" %s",findname);
+			if(findfile(pwd,findname)!=NULL)
+				printf("File Found!.....");
+			else
+				printf("File Not Found!.....");
+		}
+		else if(strcmp(cmd,"cd")==0)
+		{
+			scanf(" %s",findname);
+			if(strcmp(findname,"..")==0)
+			{
+				if(pwd->parent!=NULL)
+				{
+					pwd=pwd->parent;
+					printf("pwd changed!.....");
+				}
+				else
+					printf("Already on Root Directory!.....");
+			}
+			else
+			{
+				tmpdir=pwd->subdirlist;
+				while(tmpdir!=NULL)
+				{
+					if(strcmp(findname,tmpdir->name)==0)
+						break;
+					tmpdir=tmpdir->next;
+				}
+				if(tmpdir==NULL)
+					printf("Directory Not found!....");
+				else
+				{
+					pwd=tmpdir;
+					printf("pwd changed!.....");
+				}
+			}
+		}
 		else if(strcmp(cmd,"rmdir")==0)
 		{
-			tmp2dir=pwd->subdirlist;
-			removedir(pwd);
+			scanf(" %s",findname);
+			tmpdir=pwd->subdirlist;
+			tmp2dir=NULL;
+			while(tmpdir!=NULL)
+			{
+				if(strcmp(findname,tmpdir->name)==0)
+					break;
+				tmp2dir=tmpdir;
+				tmpdir=tmpdir->next;
+			}
+			if(tmpdir==NULL)
+				printf("Directory Not found!....");
+			else if(tmp2dir==NULL)
+			{
+				pwd->subdirlist=tmpdir->next;
+				newdir=tmpdir;
+				removedir(newdir);
+				printf("%s Directory Deleted!.......",newdir->name);
+				free(newdir);
+			}
+			else
+			{
+				tmp2dir->next=tmpdir->next;
+				newdir=tmpdir;
+				removedir(newdir);
+				printf("%s Directory Deleted!.......",newdir->name);
+				free(newdir);
+			}
 		}
-		else if(strcmp
 		else
-			printf("To be added soon!.....");
+			printf("Invalid Entry!.....");
 	}
 }
